@@ -1,14 +1,18 @@
 defmodule Rumbl.VideoController do
   use Rumbl.Web, :controller
 
+  alias Rumbl.Category
   alias Rumbl.Video
 
   plug :scrub_params, "video" when action in [:create, :update]
+  plug :load_categories when action in [:new, :create, :edit, :update]
+
 
   def index(conn, _params, user) do
     videos = Repo.all(user_videos(user))
     render(conn, "index.html", videos: videos)
   end
+
 
   def new(conn, _params, user) do
     changeset =
@@ -18,6 +22,7 @@ defmodule Rumbl.VideoController do
 
     render(conn, "new.html", changeset: changeset)
   end
+
 
   def create(conn, %{"video" => video_params}, user) do
     changeset =
@@ -35,6 +40,7 @@ defmodule Rumbl.VideoController do
     end
   end
 
+
   def show(conn, %{"id" => id}, user) do
     video = Repo.get!(user_videos(user), id)
     render(conn, "show.html", video: video)
@@ -45,6 +51,7 @@ defmodule Rumbl.VideoController do
     changeset = Video.changeset(video)
     render(conn, "edit.html", video: video, changeset: changeset)
   end
+
 
   def update(conn, %{"id" => id, "video" => video_params}, user) do
     video = Repo.get!(user_videos(user), id)
@@ -60,6 +67,7 @@ defmodule Rumbl.VideoController do
     end
   end
 
+
   def delete(conn, %{"id" => id}, user) do
     video = Repo.get!(user_videos(user), id)
 
@@ -72,6 +80,7 @@ defmodule Rumbl.VideoController do
     |> redirect(to: video_path(conn, :index))
   end
 
+
   def action(conn, _) do
     apply(__MODULE__, 
       action_name(conn),
@@ -79,7 +88,19 @@ defmodule Rumbl.VideoController do
     )
   end
 
+
   defp user_videos(user) do
     assoc(user, :videos)
+  end
+
+
+  defp load_categories(conn, _) do
+    query =
+      Category
+      |> Category.alphabetical
+      |> Category.names_and_ids
+
+    categories = Repo.all query
+    assign(conn, :categories, categories)
   end
 end
